@@ -9,6 +9,14 @@ const { Console } = require("console");
 exports.register = async (req, res) => {
   try {
     const { username, password, email, fullName, photo } = req.body;
+
+    const existingUser = await User.findOne({ where: { email } });
+    if (existingUser) {
+      return res.status(400).json({ error: "Email already exists" });
+    }
+    if (!email) {
+      return res.status(400).json({ error: "Email is required" });
+    }
     const hashedPassword = await bcrypt.hash(password, 10);
     const user = await User.create({
       username,
@@ -29,8 +37,8 @@ exports.register = async (req, res) => {
       service: "gmail", // Replace with your email service (e.g., Gmail)
 
       auth: {
-        user: "sonyfebrian362@gmail.com", // Replace with your email
-        pass: "axdlibaiqsectvbt", // Replace with your email password
+        user: process.env.SECRET_EMAIL_USER, // Replace with your email
+        pass: process.env.SECRET_EMAIL_KEY, // Replace with your email password
       },
     });
 
@@ -70,6 +78,12 @@ exports.login = async (req, res) => {
     if (!passwordMatch) {
       return res.status(401).json({ error: "Invalid credentials" });
     }
+
+    const userProfile = {
+      email: user.email,
+      fullName: user.fullName,
+      photo: user.photo,
+    };
 
     const token = jwt.sign({ userId: user.id }, process.env.SECRET_KEY, {
       expiresIn: "1h",
